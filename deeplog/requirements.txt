@@ -1,0 +1,6 @@
+# torch==1.5.1
+# boto3==1.14.12
+# spellpy==0.0.9
+torch
+boto3
+spellpy
