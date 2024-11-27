@@ -12,7 +12,7 @@
 
 # output artifact
 example/model/*
-example/openstack_result/*
+# example/openstack_result/*  # Viay: to add parsed files
 # train
 # test_normal
 # test_abnormal
