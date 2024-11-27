@@ -13,9 +13,9 @@
 # output artifact
 example/model/*
 example/openstack_result/*
-train
-test_normal
-test_abnormal
+# train
+# test_normal
+# test_abnormal
 *.pkl
 *.pth
 
