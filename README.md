@@ -3,8 +3,8 @@ IISc TalentSprint AI ML Ops Cohort 3 Group 7 Capstone Project - Anomaly detectio
 
 1. Clone the repository
 2. Create a Python environment
-   python -m venv <your environment name>
-   <your environment directory>/Scripts/activate
+   >python -m venv .env
+   >.env/Scripts/activate
 3. cd aimlops_c3_g7_capstone_loganalysis/openstack_loganalysis
 4. pip install -r requirements.txt -> this will install all the dependencies
 5. You will need to create an openstack log file "openstack.log" and place that in the directory openstack_loganalysis/data
