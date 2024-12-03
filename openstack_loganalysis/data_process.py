@@ -41,10 +41,22 @@ def parser(input_dir, output_dir, log_file, log_format, type='drain'):
         parser.parse(log_file)
 
     elif type == 'drain':
+        #regex = [
+        #    r"(?<=blk_)[-\d]+", # block_id
+        #    r'\d+\.\d+\.\d+\.\d+',  # IP
+        #    r"(/[-\w]+)+",  # file path
+            #r'(?<=[^A-Za-z0-9])(\-?\+?\d+)(?=[^A-Za-z0-9])|[0-9]+$',  # Numbers
+        #]
         regex = [
-            r"(?<=blk_)[-\d]+", # block_id
+            #r"(?<=instance:\s)[^\]]*", # instance id
             r'\d+\.\d+\.\d+\.\d+',  # IP
-            r"(/[-\w]+)+",  # file path
+            r'([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})',  # any hexdecimal string
+            r"(^[<=\"].*?[?=\"]$)",  # HTTP Request,
+            r"(?<=status:\s)[\d]+",
+            r"(?<=len:\s)[\d]+",
+            r"(?<=time:\s)[.\d]+",
+            r'[0-9a-f]{40}',
+            r'[0-9a-f]{32}',
             #r'(?<=[^A-Za-z0-9])(\-?\+?\d+)(?=[^A-Za-z0-9])|[0-9]+$',  # Numbers
         ]
         # the hyper parameter is set according to http://jmzhu.logpai.com/pub/pjhe_icws2017.pdf
