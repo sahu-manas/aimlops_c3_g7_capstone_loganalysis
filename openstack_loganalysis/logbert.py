@@ -49,7 +49,7 @@ options["hidden"] = 256 # embedding size
 options["layers"] = 4
 options["attn_heads"] = 4
 
-options["epochs"] = 20
+options["epochs"] = 50
 options["n_epochs_stop"] = 10
 options["batch_size"] = 32
 
