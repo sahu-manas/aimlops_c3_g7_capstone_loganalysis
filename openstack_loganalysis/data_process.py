@@ -94,6 +94,72 @@ def _sampling(log_file, window='session'):
     
     print("openstack sampling done")
 
+def openstack_sampling(log_file, window='session'):
+    assert window == 'session', "Only window=session is supported for OpenStack dataset."
+    print("Loading", log_file)
+    df = pd.read_csv(log_file, engine='c',
+            na_filter=False, memory_map=True, dtype={'Date':object, "Time": object})
+
+    #print(df.head())
+    
+    with open(output_dir + "openstack_log_templates.json", "r") as f:
+        event_num = json.load(f)
+    
+    #print(event_num)
+    
+    df["EventId"] = df["EventId"].apply(lambda x: event_num.get(x, -1))
+
+    #print(df.head())
+    #df.to_csv(output_dir + "openstack_sequence_test.csv",index=None)
+    
+    data_dict = defaultdict(list) #preserve insertion order of items
+    instance_list = []
+    #instance_set = set()
+    for idx, row in tqdm(df.iterrows()):
+        instance_list.append(re.findall(r'(\[instance:\s.*?\])', row['Content']))
+        #instance_set = set(instance_list)
+        #for instance in instance_set:
+            #data_dict[instance].append(row["EventId"])
+    
+    #print(instance_list)
+    #for i, n in enumerate(instance_list):
+    #    n = n.st
+    instance_list_cleaned = []
+    for line in instance_list:
+        for ln in line:
+            ln = ln.replace(r'[instance: ', '')
+            ln = ln.replace(r']', '')
+            if ln not in instance_list_cleaned:
+                instance_list_cleaned.append(ln)
+
+    
+    #print(instance_list_cleaned)
+    #instance_set = set(instance_list_cleaned)
+    #print(instance_set)
+    
+    #for idx, row in tqdm(df.iterrows()):
+    #    instance_list.append(re.findall(r'(\[instance:\s.*?\])', row['Content']))
+    
+        #data_dict[instance].append(row["EventId"])
+            
+    #print(data_dict)
+    
+    for instance in tqdm(instance_list_cleaned):
+    #instance = '5b98ace2-4126-46c3-a43e-1e1d879f0a8f'
+        df_select = df[df.Content.str.contains(instance)]
+    #print(df_select)
+        for idx, row in df_select.iterrows():
+            data_dict[instance].append(row["EventId"])
+
+    data_df = pd.DataFrame(list(data_dict.items()), columns=['InstanceId', 'EventSequence'])
+    
+    #print(data_df.head())
+    #data_df['InstanceId'] = data_df['InstanceId'].str.replace('[instance: ','')
+    #data_df['InstanceId'] = data_df['InstanceId'].str.replace(']','')
+    #print(data_df.head())
+    data_df.to_csv(log_sequence_file, index=None)
+    
+    print("openstack sampling done")
 
 def generate_train_test(sequence_file, ratio=0.8):
     label_dict = {}
@@ -158,8 +224,9 @@ def generate_logformat_regex(logformat):
 if __name__ == "__main__":
     # 1. parse OpenStack log
     log_format = '<Logrecord> <Date> <Time> <Pid> <Level> <Component> \[<ADDR>\] <Content>' #openstack log format
-    generate_logformat_regex(log_format)
+    #generate_logformat_regex(log_format)
     parser(input_dir, output_dir, log_file, log_format, 'drain')
     mapping()
-    _sampling(log_structured_file)
+    #_sampling(log_structured_file)
+    openstack_sampling(log_structured_file)
     generate_train_test(log_sequence_file)
