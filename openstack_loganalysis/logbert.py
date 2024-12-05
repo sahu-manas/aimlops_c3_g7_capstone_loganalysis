@@ -6,6 +6,8 @@ import os
 dirname = os.path.dirname(__file__)
 filename = os.path.join(dirname, '../deeplog')
 
+import warnings
+warnings.filterwarnings("ignore")
 
 import argparse
 import torch
@@ -49,7 +51,7 @@ options["hidden"] = 256 # embedding size
 options["layers"] = 4
 options["attn_heads"] = 4
 
-options["epochs"] = 50
+options["epochs"] = 200
 options["n_epochs_stop"] = 10
 options["batch_size"] = 32
 
