@@ -1,0 +1,11 @@
+setuptools
+ipykernel
+pandas
+matplotlib
+numpy
+regex
+requests
+seaborn
+scikit-learn
+torch
+tqdm
