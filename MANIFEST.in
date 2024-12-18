@@ -1,0 +1,27 @@
+include *.txt
+include *.md
+include *.pkl
+recursive-include ./app *
+recursive-include ./config *
+recursive-include ./examples *
+recursive-include ./logbert-pytorch *
+recursive-include ./logparser *
+
+include hdfs_analysis/data/HDFS_Normal_1.txt
+include hdfs_analysis/data/HDFS_Anomaly_1.txt
+include hdfs_analysis/output/bert/best_bert.pth
+include hdfs_analysis/output/bert/best_center.pt
+include hdfs_analysis/output/bert/best_total_distance.pt
+include hdfs_analysis/output/hdfs_log_templates.json
+include hdfs_analysis/output/HDFS.log_templates.csv
+include hdfs_analysis/output/vocab.pkl
+
+include ./requirements.txt
+include ./VERSION
+include ./config.yml
+
+exclude *.log
+exclude *.cfg
+
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]

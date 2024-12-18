@@ -1,0 +1,58 @@
+package_name: aimlops_c3_g7_capstone_loganalysis
+
+#logging_level: WARNING
+logging_level: INFO
+logging_format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+
+#HDFS Log File Specific configuration
+hdfs_templates_dir: hdfs_analysis/output
+hdfs_templates_json_file: hdfs_log_templates.json
+hdfs_templates_file: HDFS.log_templates.csv
+
+hdfs_model_dir: hdfs_analysis/output/bert
+hdfs_model_name: best_bert.pth
+hdfs_center: best_center.pt
+hdfs_total_dist: best_total_dist.pt
+hdfs_st: 0.5  # Similarity threshold
+hdfs_depth: 5  # Depth of all leaf nodes
+hdfs_log_pattern: '<Date> <Time> <Pid> <Level> <Component>: <Content>'
+device: cpu
+output_dir: hdfs_analysis/output/
+model_dir: hdfs_analysis/output/bert/
+model_path: hdfs_analysis/output/bert/best_bert.pth
+train_vocab: hdfs_analysis/output/train
+vocab_path: hdfs_analysis/output/vocab.pkl
+window_size: 128
+adaptive_window: True
+seq_len: 512
+max_len: 512
+min_len: 10
+mask_ratio: 0.65
+train_ratio: 1
+valid_ratio: 0.1
+test_ratio: 1
+is_logkey: True
+is_time: False
+hypersphere_loss: True
+hypersphere_loss_test: True
+scale: None
+scale_path: hdfs_analysis/output/bert/scale.pkl
+hidden: 256
+layers: 4
+attn_heads: 4
+epochs: 200
+n_epochs_stop: 10
+batch_size: 32
+corpus_lines: None
+on_memory: True
+num_workers: 5
+lr: 0.001
+adam_beta1: 0.9
+adam_beta2: 0.999
+adam_weight_decay: 0.0
+with_cuda: True
+cuda_devices: None
+log_freq: None
+num_candidates: 6
+gaussian_mean: 0
+gaussian_std: 1
