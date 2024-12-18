@@ -3,14 +3,26 @@ Description : This file implements the Drain algorithm for log parsing
 Author      : LogPAI team
 License     : MIT
 """
+import sys
+import os
+from pathlib import Path
+file = Path(__file__).resolve()
+parent, root = file.parent, file.parents[1]
+sys.path.append(str(root))
 
 import re
-import os
 import numpy as np
 import pandas as pd
 import hashlib
+import logging
 from datetime import datetime
 
+from config.config import config
+
+logging.basicConfig(level=config.app_config.logging_level,
+                    format=config.app_config.logging_format)
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.StreamHandler(sys.stdout))
 
 class Logcluster:
     def __init__(self, logTemplate='', logIDL=None):
@@ -50,6 +62,7 @@ class LogParser:
         self.logName = None
         self.savePath = outdir
         self.df_log = None
+        #self.df_event = None
         self.log_format = log_format
         self.rex = rex
         self.keep_para = keep_para
@@ -192,8 +205,8 @@ class LogParser:
             i += 1
 
         return retVal
-
-    def outputResult(self, logClustL):
+    
+    def parseResult(self, logClustL):
         log_templates = [0] * self.df_log.shape[0]
         log_templateids = [0] * self.df_log.shape[0]
         df_events = []
@@ -211,15 +224,21 @@ class LogParser:
         self.df_log['EventId'] = log_templateids
         self.df_log['EventTemplate'] = log_templates
 
-        if self.keep_para:
-            self.df_log["ParameterList"] = self.df_log.apply(self.get_parameter_list, axis=1)
-        self.df_log.to_csv(os.path.join(self.savePath, self.logName + '_structured.csv'), index=False)
-
         occ_dict = dict(self.df_log['EventTemplate'].value_counts())
         df_event = pd.DataFrame()
         df_event['EventTemplate'] = self.df_log['EventTemplate'].unique()
         df_event['EventId'] = df_event['EventTemplate'].map(lambda x: hashlib.md5(str(x).encode('utf-8')).hexdigest()[0:8])
         df_event['Occurrences'] = df_event['EventTemplate'].map(occ_dict)
+        return df_event
+
+    def outputResult(self, logClustL):
+        
+        df_event = self.parseResult(logClustL)
+        
+        if self.keep_para:
+            self.df_log["ParameterList"] = self.df_log.apply(self.get_parameter_list, axis=1)
+        self.df_log.to_csv(os.path.join(self.savePath, self.logName + '_structured.csv'), index=False)
+
         df_event.to_csv(os.path.join(self.savePath, self.logName + '_templates.csv'), index=False,
                         columns=["EventId", "EventTemplate", "Occurrences"])
 
@@ -243,7 +262,7 @@ class LogParser:
             self.printTree(node.childD[child], dep + 1)
 
     def parse(self, logName):
-        print('Parsing file: ' + os.path.join(self.path, logName))
+        logger.info('Parsing file: ' + os.path.join(self.path, logName))
         start_time = datetime.now()
         self.logName = logName
         rootNode = Node()
@@ -274,14 +293,60 @@ class LogParser:
 
             count += 1
             if count % 1000 == 0 or count == len(self.df_log):
-                print('Processed {0:.1f}% of log lines.'.format(count * 100.0 / len(self.df_log)), end='\r')
+                logger.info('Processed {0:.1f}% of log lines.'.format(count * 100.0 / len(self.df_log)))
 
         if not os.path.exists(self.savePath):
             os.makedirs(self.savePath)
 
         self.outputResult(logCluL)
 
-        print('Parsing done. [Time taken: {!s}]'.format(datetime.now() - start_time))
+        logger.info('Parsing done. [Time taken: {!s}]'.format(datetime.now() - start_time))
+    
+    def parseInMemory(self, logs):
+        #print('Parsing file: ' + os.path.join(self.path, logName))
+        start_time = datetime.now()
+        #self.logName = logName
+        rootNode = Node()
+        logCluL = []
+        
+        headers, regex = self.generate_logformat_regex(self.log_format)
+        self.df_log = self.df_to_dataframe(logs, regex, headers, self.log_format)
+        
+        logger.info(self.df_log.head())
+        #self.load_data()
+
+        count = 0
+        for idx, line in self.df_log.iterrows():
+
+            logID = line['LineId']
+            logmessageL = self.preprocess(line['Content']).strip().split()
+            # logmessageL = filter(lambda x: x != '', re.split('[\s=:,]', self.preprocess(line['Content'])))
+            matchCluster = self.treeSearch(rootNode, logmessageL)
+
+            # Match no existing log cluster
+            if matchCluster is None:
+                newCluster = Logcluster(logTemplate=logmessageL, logIDL=[logID])
+                logCluL.append(newCluster)
+                self.addSeqToPrefixTree(rootNode, newCluster)
+
+            # Add the new log message to the existing cluster
+            else:
+                newTemplate = self.getTemplate(logmessageL, matchCluster.logTemplate)
+                matchCluster.logIDL.append(logID)
+                if ' '.join(newTemplate) != ' '.join(matchCluster.logTemplate):
+                    matchCluster.logTemplate = newTemplate
+
+            count += 1
+            if count % 1000 == 0 or count == len(self.df_log):
+                logger.info('Processed {0:.1f}% of log lines.'.format(count * 100.0 / len(self.df_log)))
+
+        if not os.path.exists(self.savePath):
+            os.makedirs(self.savePath)
+
+        self.parseResult(logCluL)
+
+        logger.info('Parsing done. [Time taken: {!s}]'.format(datetime.now() - start_time))
+        return self.df_log
 
     def load_data(self):
         headers, regex = self.generate_logformat_regex(self.log_format)
@@ -291,6 +356,30 @@ class LogParser:
         for currentRex in self.rex:
             line = re.sub(currentRex, '<*>', line)
         return line
+    
+    def df_to_dataframe(self, logs, regex, headers, logformat):
+        """ Function to transform log file to dataframe
+        """
+        log_messages = []
+        linecount = 0
+        cnt = 0
+        #with open(log_file, 'r') as fin:
+        for line in logs:
+            cnt += 1
+            try:
+                match = regex.search(line.strip())
+                message = [match.group(header) for header in headers]
+                log_messages.append(message)
+                linecount += 1
+            except Exception as e:
+                # print("\n", line)
+                # print(e)
+                pass
+        logger.info(f"Total size after encoding is: {linecount} {cnt}")
+        logdf = pd.DataFrame(log_messages, columns=headers)
+        logdf.insert(0, 'LineId', None)
+        logdf['LineId'] = [i + 1 for i in range(linecount)]
+        return logdf
 
     def log_to_dataframe(self, log_file, regex, headers, logformat):
         """ Function to transform log file to dataframe
@@ -310,7 +399,7 @@ class LogParser:
                     # print("\n", line)
                     # print(e)
                     pass
-        print("Total size after encoding is", linecount, cnt)
+        logger.info(f"Total size after encoding is: {linecount} {cnt}")
         logdf = pd.DataFrame(log_messages, columns=headers)
         logdf.insert(0, 'LineId', None)
         logdf['LineId'] = [i + 1 for i in range(linecount)]

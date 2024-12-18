@@ -99,6 +99,10 @@ def generate_train_test(hdfs_sequence_file, n=None, ratio=0.3):
     train = normal_seq.iloc[:train_len]
     test_normal = normal_seq.iloc[train_len:]
     test_abnormal = abnormal_seq
+    
+    #test_normal = normal_seq.iloc[:train_len]
+    #train = normal_seq.iloc[train_len:]
+    #test_abnormal = abnormal_seq
 
     df_to_file(train, output_dir + "train")
     df_to_file(test_normal, output_dir + "test_normal")
